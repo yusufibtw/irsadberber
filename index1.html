@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dijital Kartvizit</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --bg: #121212; --card: #1e1e1e; --gold: #d4af37; --text: #fff; --muted: #a0a0a0; }
+        body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 480px; padding: 20px; text-align: center; position: relative; }
+        
+        .btn-settings { position: absolute; top: 20px; right: 20px; background: none; border: none; color: #444; font-size: 24px; cursor: pointer; transition: 0.3s; }
+        .btn-settings:hover { color: var(--gold); }
+        
+        .profile-img { width: 100px; height: 100px; border-radius: 50%; border: 2px solid var(--gold); margin-top: 20px; object-fit: cover; }
+        h1 { font-size: 22px; margin: 10px 0 5px; }
+        p.sub { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+        
+        .card { background: var(--card); padding: 20px; border-radius: 15px; margin-bottom: 15px; text-align: left; }
+        .card h2 { color: var(--gold); font-size: 14px; margin-top: 0; margin-bottom: 15px; text-transform: uppercase;}
+        .label { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+        .val { font-size: 18px; font-weight: bold; margin-bottom: 15px; word-break: break-all; }
+        
+        .btn-copy { background: var(--gold); color: black; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.2s;}
+        
+        .social-btn { display: flex; align-items: center; background: var(--card); color: var(--text); text-decoration: none; padding: 15px; border-radius: 10px; margin-bottom: 10px; font-size: 15px; }
+        .social-btn i { font-size: 22px; width: 40px; color: var(--gold); }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 1000; padding: 15px; box-sizing: border-box; }
+        .modal-content { background: var(--card); padding: 20px; border-radius: 15px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; text-align: left; }
+        .modal-content h3 { color: var(--gold); margin-top: 0; margin-bottom: 20px;}
+        .modal-content input { width: 100%; padding: 12px; margin-bottom: 15px; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 8px; box-sizing: border-box; }
+        
+        .btn-save { background: var(--gold); color: black; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .btn-cancel { background: #444; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Sağ Üst Ayar Butonu -->
+        <button class="btn-settings" onclick="checkPassword()"><i class="fas fa-cog"></i></button>
+        
+        <!-- Üst Profil Bilgileri -->
+        <img id="logo-img" src="" alt="Logo" class="profile-img">
+        <h1 id="shop-name">Yükleniyor...</h1>
+        <p class="sub" id="shop-sub"><i class="fas fa-map-marker-alt"></i> Yükleniyor...</p>
+
+        <!-- IBAN Bölümü -->
+        <div class="card">
+            <h2>IBAN ile Ödeme</h2>
+            <div class="label">Hesap Sahibi</div>
+            <div class="val" id="owner-name">Yükleniyor...</div>
+            <div class="label">IBAN Numarası</div>
+            <div class="val" id="iban-no">Yükleniyor...</div>
+            <button class="btn-copy" onclick="copyIban()" id="copy-btn"><i class="fas fa-copy"></i> IBAN'ı Kopyala</button>
+        </div>
+
+        <!-- Sosyal Medya & Link Butonları (Boşsa Görünmez) -->
+        <a id="link-g" href="#" target="_blank" class="social-btn" style="display:none;">
+            <i class="fab fa-google"></i> Google'da Bizi Değerlendirin
+        </a>
+        <a id="link-i" href="#" target="_blank" class="social-btn" style="display:none;">
+            <i class="fab fa-instagram"></i> Instagram'da Takip Edin
+        </a>
+        <a id="link-w" href="#" target="_blank" class="social-btn" style="display:none;">
+            <i class="fab fa-whatsapp"></i> WhatsApp'tan Bize Ulaşın
+        </a>
+    </div>
+
+    <!-- Yönetici Paneli Modalı -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h3>Yönetici Paneli</h3>
+            
+            <div class="label">Dükkan Adı</div>
+            <input type="text" id="inp-shop" placeholder="Örn: Kuaför Ahmet">
+            
+            <div class="label">Konum / Şehir</div>
+            <input type="text" id="inp-sub" placeholder="Örn: Talas, Kayseri">
+
+            <div class="label">Logo Harfleri (İki Harf)</div>
+            <input type="text" id="inp-logo" placeholder="Örn: KA">
+            
+            <div class="label">Hesap Sahibi Adı</div>
+            <input type="text" id="inp-owner">
+            
+            <div class="label">IBAN Numarası</div>
+            <input type="text" id="inp-iban">
+            
+            <div class="label">Google Haritalar Linki (Zorunlu Değil)</div>
+            <input type="text" id="inp-g" placeholder="https://maps.google.com/...">
+
+            <div class="label">Instagram Kullanıcı Adı (Zorunlu Değil)</div>
+            <input type="text" id="inp-i" placeholder="Örn: kuaforahmet">
+
+            <div class="label">WhatsApp Numarası (Zorunlu Değil)</div>
+            <input type="text" id="inp-w" placeholder="Örn: 905xxxxxxxxx">
+            
+            <button class="btn-save" onclick="generateUrl()">Bilgileri Kaydet & Link Üret</button>
+            <button class="btn-cancel" onclick="closeModal()">Kapat</button>
+        </div>
+    </div>
+
+    <script>
+        // Sayfa Yüklendiğinde URL'den Bilgileri Çeker
+        function loadData() {
+            const p = new URLSearchParams(window.location.search);
+            
+            // URL kısaltmaları: s=isim, l=konum, lg=logo, n=hesap, ib=iban, g=google, i=insta, w=wp
+            const shop = p.get('s') || 'Örnek İşletme';
+            const sub = p.get('l') || 'Şehir, İlçe';
+            const logo = p.get('lg') || 'Öİ';
+            const owner = p.get('n') || 'Ad Soyad';
+            const iban = p.get('ib') || 'TR00 0000 0000 0000 0000 0000 00';
+            const gl = p.get('g') || '';
+            const ig = p.get('i') || '';
+            const wp = p.get('w') || '';
+
+            // Metinleri Ekrana Yazdır
+            document.getElementById('shop-name').innerText = shop;
+            document.getElementById('shop-sub').innerHTML = `<i class="fas fa-map-marker-alt"></i> ` + sub;
+            document.getElementById('logo-img').src = `https://ui-avatars.com/api/?name=${logo}&background=d4af37&color=000&size=150`;
+            document.getElementById('owner-name').innerText = owner;
+            document.getElementById('iban-no').innerText = iban;
+
+            // Linkleri Kontrol Et ve Varsa Göster
+            if(gl) { document.getElementById('link-g').href = gl; document.getElementById('link-g').style.display = 'flex'; }
+            if(ig) { document.getElementById('link-i').href = `https://instagram.com/${ig}`; document.getElementById('link-i').style.display = 'flex'; }
+            if(wp) { document.getElementById('link-w').href = `https://wa.me/${wp}`; document.getElementById('link-w').style.display = 'flex'; }
+        }
+
+        // Şifre Doğrulama Sistemi
+        function checkPassword() {
+            const pass = prompt("Yönetici paneline erişmek için şifreyi girin:");
+            if (pass === "6532") {
+                openModal();
+            } else if (pass !== null) {
+                alert("Hatalı şifre girdiniz!");
+            }
+        }
+
+        // Modalı İçini URL'deki Verilerle Doldurarak Aç
+        function openModal() {
+            const p = new URLSearchParams(window.location.search);
+            document.getElementById('inp-shop').value = p.get('s') || '';
+            document.getElementById('inp-sub').value = p.get('l') || '';
+            document.getElementById('inp-logo').value = p.get('lg') || '';
+            document.getElementById('inp-owner').value = p.get('n') || '';
+            document.getElementById('inp-iban').value = p.get('ib') || '';
+            document.getElementById('inp-g').value = p.get('g') || '';
+            document.getElementById('inp-i').value = p.get('i') || '';
+            document.getElementById('inp-w').value = p.get('w') || '';
+            
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // Yeni Verileri URL'ye Entegre Et
+        function generateUrl() {
+            const url = new URL(window.location.href.split('?')[0]); 
+            
+            if(document.getElementById('inp-shop').value) url.searchParams.set('s', document.getElementById('inp-shop').value);
+            if(document.getElementById('inp-sub').value) url.searchParams.set('l', document.getElementById('inp-sub').value);
+            if(document.getElementById('inp-logo').value) url.searchParams.set('lg', document.getElementById('inp-logo').value);
+            if(document.getElementById('inp-owner').value) url.searchParams.set('n', document.getElementById('inp-owner').value);
+            if(document.getElementById('inp-iban').value) url.searchParams.set('ib', document.getElementById('inp-iban').value);
+            if(document.getElementById('inp-g').value) url.searchParams.set('g', document.getElementById('inp-g').value);
+            if(document.getElementById('inp-i').value) url.searchParams.set('i', document.getElementById('inp-i').value);
+            if(document.getElementById('inp-w').value) url.searchParams.set('w', document.getElementById('inp-w').value);
+
+            window.location.href = url.toString();
+        }
+
+        // IBAN Kopyalama Özelliği
+        function copyIban() {
+            const text = document.getElementById('iban-no').innerText.replace(/\s+/g, '');
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copy-btn');
+                btn.innerHTML = '<i class="fas fa-check"></i> Kopyalandı!';
+                btn.style.background = '#4CAF50'; 
+                btn.style.color = '#fff';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-copy"></i> IBAN\'ı Kopyala';
+                    btn.style.background = 'var(--gold)'; 
+                    btn.style.color = '#000';
+                }, 2000);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
