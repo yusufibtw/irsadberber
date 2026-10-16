@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Ödeme & İletişim</title>
+    <!-- FontAwesome İkonları İçin -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --primary-color: #d4af37; /* Lüks Altın Rengi */
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+        }
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex; justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%; max-width: 480px;
+            padding: 30px 20px; box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .profile-img {
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            border: 3px solid var(--primary-color);
+            margin-bottom: 15px; object-fit: cover;
+        }
+        h1 { font-size: 22px; margin: 0 0 5px 0; text-align: center; }
+        p.subtitle { color: var(--text-muted); margin: 0 0 25px 0; font-size: 14px; text-align: center; }
+        
+        .card {
+            background-color: var(--card-bg);
+            width: 100%; border-radius: 15px;
+            padding: 20px; box-sizing: border-box;
+            margin-bottom: 20px; position: relative;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        .card h2 {
+            font-size: 14px; color: var(--primary-color);
+            margin: 0 0 15px 0; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-edit {
+            position: absolute; top: 15px; right: 15px;
+            background: none; border: none;
+            color: var(--text-muted); cursor: pointer; font-size: 18px;
+        }
+        .btn-edit:hover { color: var(--primary-color); }
+        
+        .info-group { margin-bottom: 15px; }
+        .info-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+        .info-group .value { font-size: 18px; font-weight: bold; word-break: break-all; }
+        
+        .btn-copy {
+            background-color: var(--primary-color); color: #000;
+            border: none; padding: 12px; width: 100%;
+            border-radius: 8px; font-size: 16px; font-weight: bold;
+            cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px;
+        }
+        
+        .link-btn {
+            background-color: var(--card-bg); color: var(--text-main);
+            text-decoration: none; padding: 15px 20px; width: 100%;
+            border-radius: 10px; margin-bottom: 12px;
+            display: flex; align-items: center; box-sizing: border-box; font-size: 16px;
+        }
+        .link-btn i { font-size: 24px; width: 40px; color: var(--primary-color); }
+        
+        /* Düzenleme Modalı */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); justify-content: center; align-items: center;
+            padding: 20px; z-index: 1000;
+        }
+        .modal-content {
+            background: var(--card-bg); padding: 25px; border-radius: 15px; width: 100%; max-width: 400px;
+        }
+        .modal h3 { margin-top: 0; color: var(--primary-color); }
+        .modal input {
+            width: 100%; padding: 12px; margin-bottom: 15px;
+            background: #2a2a2a; border: 1px solid #444; color: white;
+            border-radius: 8px; box-sizing: border-box; font-size: 16px;
+        }
+        .modal-actions { display: flex; gap: 10px; }
+        .btn-save { flex: 2; background: var(--primary-color); color: #000; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-cancel { flex: 1; background: #444; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Logo -->
+        <img src="https://ui-avatars.com/api/?name=MG&background=d4af37&color=000&size=150" alt="Logo" class="profile-img">
+        
+        <h1 id="shop-name">Mehmet İrşad Güder Barber Shop</h1>
+        <p class="subtitle"><i class="fas fa-map-marker-alt"></i> Talas, Kayseri</p>
+
+        <!-- IBAN Kartı -->
+        <div class="card">
+            <h2>Hızlı Ödeme</h2>
+            <button class="btn-edit" onclick="openModal()" title="Bilgileri Düzenle"><i class="fas fa-edit"></i></button>
+            
+            <div class="info-group">
+                <label>Hesap Sahibi</label>
+                <div class="value" id="display-name">Yükleniyor...</div>
+            </div>
+            <div class="info-group">
+                <label>IBAN Numarası</label>
+                <div class="value" id="display-iban">Yükleniyor...</div>
+            </div>
+            
+            <button class="btn-copy" onclick="copyIban()" id="copy-btn">
+                <i class="fas fa-copy"></i> IBAN'ı Kopyala
+            </button>
+        </div>
+
+        <!-- Google Haritalar Yorum Linki -->
+        <a href="https://maps.google.com/?q=Mehmet+İrşad+Güder+Barber+Shop+Talas+Kayseri" target="_blank" class="link-btn">
+            <i class="fas fa-star"></i>
+            <div>Google'da Bizi Değerlendirin</div>
+        </a>
+    </div>
+
+    <!-- Düzenleme Modalı -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h3>Bilgileri Özelleştir</h3>
+            <p style="font-size:12px; color:#aaa;">Bu bilgileri değiştirdiğinizde adres çubuğundaki link güncellenecektir. Yeni linki NFC etiketinize kopyalayabilirsiniz.</p>
+            
+            <label>Dükkan Adı</label>
+            <input type="text" id="input-shop" placeholder="Örn: Kuaför Ahmet">
+            
+            <label>Hesap Sahibi Adı</label>
+            <input type="text" id="input-name" placeholder="Örn: Ahmet Yılmaz">
+            
+            <label>IBAN Numarası</label>
+            <input type="text" id="input-iban" placeholder="Örn: TR12 3456...">
+            
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">İptal</button>
+                <button class="btn-save" onclick="generateLink()"><i class="fas fa-link"></i> Uygula & Link Üret</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sayfa açıldığında URL'deki (Linkteki) bilgileri oku ve ekrana bas
+        function loadData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            const name = urlParams.get('name') || 'Mehmet İrşad Güder';
+            const iban = urlParams.get('iban') || 'TR65 0006 1000 0000 0000 1234 56';
+            const shop = urlParams.get('shop') || 'Mehmet İrşad Güder Barber Shop';
+
+            document.getElementById('display-name').innerText = name;
+            document.getElementById('display-iban').innerText = iban;
+            document.getElementById('shop-name').innerText = shop;
+        }
+
+        document.addEventListener('DOMContentLoaded', loadData);
+
+        // IBAN Kopyalama Animasyonu
+        function copyIban() {
+            const ibanText = document.getElementById('display-iban').innerText;
+            navigator.clipboard.writeText(ibanText.replace(/\s+/g, '')).then(() => {
+                const btn = document.getElementById('copy-btn');
+                btn.innerHTML = '<i class="fas fa-check"></i> Kopyalandı!';
+                btn.style.backgroundColor = '#4CAF50'; // Yeşil onay rengi
+                btn.style.color = '#fff';
+                
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-copy"></i> IBAN\'ı Kopyala';
+                    btn.style.backgroundColor = 'var(--primary-color)';
+                    btn.style.color = '#000';
+                }, 2000);
+            });
+        }
+
+        // Düzenleme Ekranını Aç
+        function openModal() {
+            document.getElementById('input-shop').value = document.getElementById('shop-name').innerText;
+            document.getElementById('input-name').value = document.getElementById('display-name').innerText;
+            document.getElementById('input-iban').value = document.getElementById('display-iban').innerText;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        // Düzenleme Ekranını Kapat
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // Yeni bilgileri Link'e entegre et ve sayfayı yenile
+        function generateLink() {
+            const newShop = document.getElementById('input-shop').value;
+            const newName = document.getElementById('input-name').value;
+            const newIban = document.getElementById('input-iban').value;
+            
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('shop', newShop);
+            newUrl.searchParams.set('name', newName);
+            newUrl.searchParams.set('iban', newIban);
+            
+            // Sayfayı yeni üretilen link ile yeniler
+            window.location.href = newUrl.toString(); 
+        }
+    </script>
+</body>
+</html>
